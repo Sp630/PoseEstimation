@@ -30,7 +30,18 @@ def save_to_file(landmarks, type):
         feature[pose_counter][0:99] = landmarks
     elif type == 'hand':
         hand_counter += 1
-        feature[99:255] = landmarks
+        feature[hand_counter][99:255] = landmarks
+
+def save_previous(type):
+    global pose_counter, hand_counter
+    if type == 'pose':
+        previous = feature[-1][0:99]
+        pose_counter += 1
+        feature[hand_counter][0:99] = previous
+    elif type == 'hand':
+        previous = feature[hand_counter][99:255]
+        hand_counter += 1
+        feature[hand_counter][99:255] = previous
 
 
 
@@ -49,6 +60,7 @@ start_time = time.time()
 cap = cv2.VideoCapture(0)
 record = True
 while record:
+    print(hand_counter)
     success, img = cap.read()
     if success:
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -58,12 +70,19 @@ while record:
         time_ms = int((time.time() - start_time) * 1000)
         hands_detector.detect_async(img_mp, time_ms)
         if(detection_result_hands is not None and len(detection_result_hands.hand_landmarks) > 0):
+            hand = 1
             for lm in detection_result_hands.hand_landmarks:
                 draw_img =  draw_Landmarks(img, lm)
 
-            arr = np.array([[[lm.x, lm.y, lm.z] for lm in hand] for hand in detection_result_hands.hand_landmarks])
+            arr = np.zeros([2, 21, 3])
+            for i, hand in enumerate(detection_result_hands.hand_landmarks):
+                arr[i] = [[lm.x, lm.y, lm.z] for lm in hand]
             flat = arr.reshape(-1)
-            save_to_file(flat)
+            save_to_file(flat, 'hand')
+
+
+        else:
+            save_previous('hand')
 
 
         pose_detector.detect_async(img_mp, time_ms)
@@ -71,10 +90,13 @@ while record:
             for lm in detection_result_pose.pose_landmarks:
                 draw_img = draw_Landmarks(img, lm)
                 draw_img = draw_connections(img, lm)
-                save_to_file(lm)
-
+            arr = np.array([[[lm.x, lm.y, lm.z] for lm in pose] for pose in detection_result_pose.pose_landmarks])
+            flat = arr.reshape(-1)
+            save_to_file(flat, 'pose')
+        else:
+            save_previous('pose')
 
     img = cv2.flip(img, 1)
     cv2.imshow("Image", img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q') or hand_counter == 59:
         break
