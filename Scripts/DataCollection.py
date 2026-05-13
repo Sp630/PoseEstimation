@@ -61,64 +61,65 @@ def save_previous(type):
 
 
 
+if __name__ == "__main__":
+    cap = cv2.VideoCapture(0)
+    base_options_hands = python.BaseOptions(model_asset_path ="../Models/hand_landmarker.task")
+    mode = python.vision.RunningMode
+    options_hands = vision.HandLandmarkerOptions(base_options=base_options_hands, running_mode= mode.LIVE_STREAM, num_hands=2, result_callback= callback_hands)
+    hands_detector = vision.HandLandmarker.create_from_options(options_hands)
 
-base_options_hands = python.BaseOptions(model_asset_path ="../Models/hand_landmarker.task")
-mode = python.vision.RunningMode
-options_hands = vision.HandLandmarkerOptions(base_options=base_options_hands, running_mode= mode.LIVE_STREAM, num_hands=2, result_callback= callback_hands)
-hands_detector = vision.HandLandmarker.create_from_options(options_hands)
+    base_options_pose = python.BaseOptions(model_asset_path ="../Models/pose_landmarker_heavy.task")
+    mode = python.vision.RunningMode
+    options_pose = vision.PoseLandmarkerOptions(base_options= base_options_pose, running_mode= mode.LIVE_STREAM, num_poses=1, result_callback= callback_pose)
+    pose_detector = vision.PoseLandmarker.create_from_options(options_pose)
 
-base_options_pose = python.BaseOptions(model_asset_path ="../Models/pose_landmarker_heavy.task")
-mode = python.vision.RunningMode
-options_pose = vision.PoseLandmarkerOptions(base_options= base_options_pose, running_mode= mode.LIVE_STREAM, num_poses=1, result_callback= callback_pose)
-pose_detector = vision.PoseLandmarker.create_from_options(options_pose)
+    start_time = time.time()
+    cap = cv2.VideoCapture(0)
+    record = True
+    while record:
+        success, img = cap.read()
+        if success:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-start_time = time.time()
-cap = cv2.VideoCapture(0)
-record = True
-while record:
-    success, img = cap.read()
-    if success:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=img)
 
-        img_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=img)
+            time_ms = int((time.time() - start_time) * 1000)
+            hands_detector.detect_async(img_mp, time_ms)
+            if(detection_result_hands is not None and len(detection_result_hands.hand_landmarks) > 0 and shoulder_width_global is not None):
+                hand = 1
+                for lm in detection_result_hands.hand_landmarks:
+                    draw_img =  draw_Landmarks(img, lm)
 
-        time_ms = int((time.time() - start_time) * 1000)
-        hands_detector.detect_async(img_mp, time_ms)
-        if(detection_result_hands is not None and len(detection_result_hands.hand_landmarks) > 0 and shoulder_width_global is not None):
-            hand = 1
-            for lm in detection_result_hands.hand_landmarks:
-                draw_img =  draw_Landmarks(img, lm)
+                arr = np.zeros([2, 21, 3])
+                for i, hand in enumerate(detection_result_hands.hand_landmarks):
+                    print(detection_result_hands.handedness[i][0].category_name)
+                    if detection_result_hands.handedness[i][0].category_name == "Left":
+                        arr[0] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
+                    else:
+                        arr[1] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
 
-            arr = np.zeros([2, 21, 3])
-            for i, hand in enumerate(detection_result_hands.hand_landmarks):
-                print(detection_result_hands.handedness[i][0].category_name)
-                if detection_result_hands.handedness[i][0].category_name == "Left":
-                    arr[0] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
-                else:
-                    arr[1] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
-
-            flat = arr.reshape(-1)
-            save_to_file(flat, 'hand')
-
-
-        elif shoulder_width_global is not None:
-            save_previous('hand')
+                flat = arr.reshape(-1)
+                save_to_file(flat, 'hand')
 
 
-        pose_detector.detect_async(img_mp, time_ms)
-        if(detection_result_pose is not None and len(detection_result_pose.pose_landmarks) > 0):
-            for lm in detection_result_pose.pose_landmarks:
-                draw_img = draw_Landmarks(img, lm)
-                draw_img = draw_connections(img, lm)
-            arr = np.array([[landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in pose] for pose in detection_result_pose.pose_landmarks])
-            flat = arr.reshape(-1)
-            if shoulder_width_global is not None:
-                save_to_file(flat, 'pose')
-        elif shoulder_width_global is not None:
-                save_previous('pose')
+            elif shoulder_width_global is not None:
+                save_previous('hand')
 
-    img = cv2.flip(img, 1)
-    cv2.imshow("Image", img)
-    if cv2.waitKey(1) & 0xFF == ord('q') or hand_counter == 59:
-        np.save(f"../Dataset/Казвам се/s10.npy", feature)
-        break
+
+            pose_detector.detect_async(img_mp, time_ms)
+            if(detection_result_pose is not None and len(detection_result_pose.pose_landmarks) > 0):
+                for lm in detection_result_pose.pose_landmarks:
+                    draw_img = draw_Landmarks(img, lm)
+                    draw_img = draw_connections(img, lm)
+                arr = np.array([[landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in pose] for pose in detection_result_pose.pose_landmarks])
+                flat = arr.reshape(-1)
+                if shoulder_width_global is not None:
+                    save_to_file(flat, 'pose')
+            elif shoulder_width_global is not None:
+                    save_previous('pose')
+
+        img = cv2.flip(img, 1)
+        cv2.imshow("Image", img)
+        if cv2.waitKey(1) & 0xFF == ord('q') or hand_counter == 59:
+            np.save(f"../Dataset/Казвам се/s30.npy", feature)
+            break

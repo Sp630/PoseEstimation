@@ -10,7 +10,8 @@ class UI:
         self.prediction = None
         self.gestures = {
             0: "Здравей",
-            1: "Казвам се"
+            1: "Казвам се",
+            2: "Работя"
         }
     def updateFrame(self, frame):
         self.frame = frame

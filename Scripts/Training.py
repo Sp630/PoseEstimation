@@ -3,10 +3,9 @@ from torch import nn
 import LoadDataset
 import numpy as np
 
-dataset = LoadDataset.CreateTrainingDataset(2, 10)
 
 class Model (nn.Module):
-    def __init__(self, input_size=225, hidden_size=128, num_layers=2, num_classes=2):
+    def __init__(self, input_size=225, hidden_size=512, num_layers=2, num_classes=3):
         super().__init__()
 
         self.LSTM = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
@@ -21,14 +20,14 @@ class Model (nn.Module):
 
 if __name__ == "__main__":
 
-    model = Model(input_size=225, hidden_size=128, num_layers=2, num_classes=2)
+    model = Model()
 
     loss_function = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    train_data_loader, test_data_loader = LoadDataset.CreateTrainingDataset(2, 10)
+    train_data_loader, test_data_loader = LoadDataset.CreateTrainingDataset(3, 59)
 
-    for epoch in range(10):
+    for epoch in range(30):
         for batch in train_data_loader:
             X = batch[0]
             y = batch[1]
@@ -51,6 +50,6 @@ if __name__ == "__main__":
             correct += (preds == y).sum().item()
             total += y.size(0)
 
-    torch.save(model.state_dict(), "../TrainedModels/model2.pth")
+    torch.save(model.state_dict(), "../TrainedModels/model6.pth")
 
     print(correct/total)

@@ -1,3 +1,5 @@
+from hmac import new
+
 import torch
 import Training
 from collections import deque
@@ -11,10 +13,9 @@ import time
 import numpy as np
 import UI
 from Scripts.UI import UI
-from DataCollection import landmarkNormalization
 
 model = Training.Model()
-model.load_state_dict(torch.load("../TrainedModels/model6.pth"))
+model.load_state_dict(torch.load("../TrainedModels/model1.pth"))
 model.eval()
 
 ui = UI()
@@ -22,20 +23,13 @@ ui = UI()
 detection_result_hands = None
 detection_result_pose = None
 
-shoulder_pos_global = None
-shoulder_width_global = None
-
 def callback_hands(result, output_image, timestamp_ms):
     global detection_result_hands
     detection_result_hands = result
 
 def callback_pose(result, output_image, timestamp_ms):
-    global detection_result_pose, shoulder_pos_global, shoulder_width_global
+    global detection_result_pose
     detection_result_pose = result
-    sholder_left = detection_result_pose.pose_landmarks[0][11]
-    sholder_right = detection_result_pose.pose_landmarks[0][12]
-    shoulder_pos_global = [sholder_right.x - sholder_left.x, sholder_right.y - sholder_left.y, sholder_right.z - sholder_left.z]
-    shoulder_width_global = np.sqrt((sholder_left.x - sholder_right.x) ** 2 + (sholder_left.y - sholder_right.y) ** 2)
 
 hand_counter = 0
 pose_counter = 0
@@ -106,7 +100,7 @@ while record:
 
         time_ms = int((time.time() - start_time) * 1000)
         hands_detector.detect_async(img_mp, time_ms)
-        if(detection_result_hands is not None and len(detection_result_hands.hand_landmarks) > 0 and shoulder_width_global is not None):
+        if(detection_result_hands is not None and len(detection_result_hands.hand_landmarks) > 0):
             hand = 1
             for lm in detection_result_hands.hand_landmarks:
                 draw_img =  draw_Landmarks(img, lm)
@@ -114,15 +108,15 @@ while record:
             arr = np.zeros([2, 21, 3])
             for i, hand in enumerate(detection_result_hands.hand_landmarks):
                 if detection_result_hands.handedness[i][0].category_name == "Left":
-                    arr[0] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
+                    arr[0] = [[lm.x, lm.y, lm.z] for lm in hand]
                 else:
-                    arr[1] = [landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in hand]
+                    arr[1] = [[lm.x, lm.y, lm.z] for lm in hand]
 
             flat = arr.reshape(-1)
             add_to_frame(flat, 'hand')
 
 
-        elif shoulder_width_global is not None:
+        else:
             add_previous_frame('hand')
 
 
@@ -131,11 +125,10 @@ while record:
             for lm in detection_result_pose.pose_landmarks:
                 draw_img = draw_Landmarks(img, lm)
                 draw_img = draw_connections(img, lm)
-            arr = np.array([[landmarkNormalization(lm, shoulder_pos_global, shoulder_width_global) for lm in pose] for pose in detection_result_pose.pose_landmarks])
+            arr = np.array([[[lm.x, lm.y, lm.z] for lm in pose] for pose in detection_result_pose.pose_landmarks])
             flat = arr.reshape(-1)
-            if shoulder_width_global is not None:
-                add_to_frame(flat, 'pose')
-        elif shoulder_width_global is not None:
+            add_to_frame(flat, 'pose')
+        else:
             add_previous_frame('pose')
 
         predict_irl()
@@ -147,7 +140,6 @@ while record:
         ui.updateFrame(img)
         ui.drawUI()
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            #pose_landmarker.close()
             np.save(f"../Dataset/Казвам се/s10.npy", feature)
 
             break
