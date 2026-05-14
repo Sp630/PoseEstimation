@@ -14,7 +14,7 @@ from Scripts.UI import UI
 from DataCollection import landmarkNormalization
 
 model = Training.Model()
-model.load_state_dict(torch.load("../TrainedModels/model6.pth"))
+model.load_state_dict(torch.load("../TrainedModels/model5.pth"))
 model.eval()
 
 ui = UI()

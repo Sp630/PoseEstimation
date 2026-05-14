@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Model (nn.Module):
-    def __init__(self, input_size=225, hidden_size=512, num_layers=2, num_classes=3):
+    def __init__(self, input_size=225, hidden_size=128, num_layers=2, num_classes=3):
         super().__init__()
 
         self.LSTM = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
