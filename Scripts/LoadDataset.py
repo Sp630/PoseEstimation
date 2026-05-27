@@ -15,8 +15,8 @@ def LoadDataset(num_gestures, num_samples):
     dataX = []
     dataY = []
     label = 0
-    for folder in os.listdir('../FlipDataset'):
-        path_to_folder = os.path.join('../FlipDataset', folder)
+    for folder in os.listdir('../LegacyDatasets/FlipDataset'):
+        path_to_folder = os.path.join('../LegacyDatasets/FlipDataset', folder)
         gesture_data = GetGesture(num_samples = num_samples, path=path_to_folder)
         dataX.append(gesture_data)
         dataY.extend([label] * num_samples)

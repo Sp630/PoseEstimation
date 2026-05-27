@@ -13,7 +13,7 @@ for folder in os.listdir('../Dataset'):
             newLandmark[::3] *= -1
             feature.append(newLandmark)
         arr = np.array(feature)
-        new_path_to_folder = os.path.join('../FlipDataset', folder)
+        new_path_to_folder = os.path.join('../LegacyDatasets/FlipDataset', folder)
 
         np.save(f"{new_path_to_folder}/s{save_idx}.npy", arr)
         save_idx += 1

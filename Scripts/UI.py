@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import PIL.Image as Image
 from PIL import ImageDraw, ImageFont
@@ -45,3 +47,10 @@ class UI:
             frame = np.array(img_pil)
 
         cv2.imshow("AI Vision", frame)
+
+    def countdown(self, seconds=3):
+        for i in range(seconds, 0, -1):
+            print(i)
+            time.sleep(1)
+
+        print("Go!")

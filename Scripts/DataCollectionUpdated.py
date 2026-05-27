@@ -50,6 +50,7 @@ hand_counter = 0
 pose_counter = 0
 feature =  np.zeros([60, 225], dtype= np.float32)
 feature_list = []
+feature_array = None
 dataset = []
 last_time = 0
 interval = 1.0 / 15
@@ -62,7 +63,7 @@ def save_to_file(last_pose_landmark, last_hand_landmark):
     frame[99:225] =  last_hand_landmark if last_hand_landmark is not None else np.zeros([126], dtype= np.float32)
     feature_list.append(frame)
     feature_array = np.array(feature_list)
-    print(feature_array.shape)
+    return feature_array
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
@@ -89,27 +90,30 @@ if __name__ == "__main__":
 
             time_ms = int((time.time() - start_time) * 1000)
             hands_detector.detect_async(img_mp, time_ms)
-            if(last_hand_landmark is not None and shoulder_width_global is not None and time.time() - last_time > interval):
+            if(last_hand_landmark is not None and shoulder_width_global is not None):
                 #last_time = time.time()
 
                 for lm in detection_result_hands.hand_landmarks:
                     draw_img =  draw_Landmarks(img, lm)
 
-                save_to_file(last_pose_landmark, last_hand_landmark)
+                if time.time() - last_time > interval:
+                    feature_array = save_to_file(last_pose_landmark, last_hand_landmark)
 
 
             pose_detector.detect_async(img_mp, time_ms)
-            if(last_pose_landmark is not None and time.time() - last_time > interval):
-                last_time = time.time()
+            if(last_pose_landmark is not None):
                 for lm in detection_result_pose.pose_landmarks:
                     draw_img = draw_Landmarks(img, lm)
                     draw_img = draw_connections(img, lm)
-                if shoulder_width_global is not None:
-                    save_to_file(last_pose_landmark, last_hand_landmark)
+                if shoulder_width_global is not None and time.time() - last_time > interval:
+                    last_time = time.time()
+                    feature_array = save_to_file(last_pose_landmark, last_hand_landmark)
 
 
         img = cv2.flip(img, 1)
         cv2.imshow("Image", img)
-        if cv2.waitKey(1) & 0xFF == ord('q') or time.time() - start_rec_time > 3:
-            np.save(f"../Dataset1/Казвам се/s30.npy", feature)
+        print(feature_array.shape if feature_array is not None else "Nuh-Uh")
+        if cv2.waitKey(1) & 0xFF == ord('q') or feature_array is not None and feature_array.shape[0] >= 60:
+            print(f"final seq len: {feature_array.shape}")
+            np.save(f"../Dataset2/Казвам се/s30.npy", feature)
             break
